@@ -1,11 +1,9 @@
--- Load the file from the worldpath.
 local file = io.open(minetest.get_worldpath().."/stats", "r")
 if file then
 	stats = minetest.deserialize(file:read("*all"))
 	file:close()
 end
 
--- Set the variables to the values gained from the file, or to empty tables if the file does not exist.
 stats = stats or {}
 stats.deaths = stats.deaths or {}
 stats.kills = stats.kills or {}
@@ -14,11 +12,8 @@ stats.dug = stats.dug or {}
 stats.distance = stats.distance or {}
 stats.time_on = stats.time_on or {}
 
--- Each time a player dies, increase the counter for the number of deaths
 minetest.register_on_dieplayer(function(player)
 	local name = player:get_player_name()
-	-- If the player doesn't have a value in the table, set it to 0
-	-- (It will be increased to one at the end of the function.)
 	if stats.deaths[name] == nil then
 		stats.deaths[name] = 0
 	end
@@ -26,16 +21,11 @@ minetest.register_on_dieplayer(function(player)
 	stats.deaths[name] = number+1
 end)
 
--- Each time a player kills another player, increase the kill counter.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch,
 		tool_capabilities, dir, damage)
-	-- Only increase the kill stat if the player's health starts off as above 0
-	-- and the damge reduces health to bellow 0.
-	-- This is necerserry incase a player punches an already dead player.
 	if player:get_hp() > 0 and
 	player:get_hp() - damage <= 0 then
 		local name = hitter:get_player_name()
-		-- Same as in the die player code, and so for all the functions.
 		if stats.kills[name] == nil then
 			stats.kills[name] = 0
 		end
@@ -44,7 +34,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch,
 	end
 end)
 
--- Nodes placed counter...
 minetest.register_on_placenode(function(pos, oldnode, player)
 	local name = player:get_player_name()
 	if stats.placed[name] == nil then
@@ -54,7 +43,6 @@ minetest.register_on_placenode(function(pos, oldnode, player)
 	stats.placed[name] = number+1
 end)
 
--- Nodes dug counter...
 minetest.register_on_dignode(function(pos, oldnode, player)
 	local name = player:get_player_name()
 	if stats.dug[name] == nil then
@@ -64,10 +52,8 @@ minetest.register_on_dignode(function(pos, oldnode, player)
 	stats.dug[name] = number+1
 end)
 
--- The function to save the stats to the file.
 local function save_stats()
 	local file = io.open(minetest.get_worldpath().."/stats", "w")
-	-- Only continue if the file exists or can be created.
 	if (file) then
 		file:write(minetest.serialize({deaths = stats.deaths, 
 			kills = stats.kills, placed = stats.placed, dug = stats.dug,
@@ -76,8 +62,6 @@ local function save_stats()
 	end
 end
 
--- A bit of magic to get the highest stats!
--- I don't really know how it works, I'll comment it more tomorrow!
 local function sort(t)
 	local keys = {}
 	for k in pairs(t) do keys[#keys+1] = k end
@@ -92,7 +76,6 @@ local function sort(t)
 	end
 end
 
--- A function to change seconds into more readable times!
 function breakdowntime(t)
 	local eng = {"Secs","Mins","Hours","Days","Weeks","Months","Years"}
 	local inc = {60,60,24,7,4,12,1}	
@@ -105,7 +88,6 @@ function breakdowntime(t)
 	end
 end
 
--- I'm not explaining formspecs, look in the modding bock!!
 local formspec = "size[16,8]" ..
 	"label[0.2,0.5;" .. minetest.colorize("red", "Deaths:") .. "]" ..
 	"label[2.6,0.5;" .. minetest.colorize("purple", "Kills:") .. "]" ..
@@ -114,16 +96,11 @@ local formspec = "size[16,8]" ..
 	"label[13,0.5;" .. minetest.colorize("yellow", "Time played:") .. "]" ..
 	"label[10,0.5;" .. minetest.colorize("orange", "Distance walked:") .. "]"
 
--- Make a copy of the formspec.
 local n_formspec = formspec
 
--- A function to order the stats!
 local function order()
 	local n = 1
-	-- Reset n_formspec
 	n_formspec = formspec
-	-- Sort the deaths highest first, and add this to the formspec
-	-- and carry on with this for the 10 highest stats.
 	for i,v in sort(stats.deaths) do
 		if n < 4.5 then
 			n_formspec = n_formspec .. "label[0.2," .. n .. ";" .. i .. ": " .. v .. "]"
@@ -132,7 +109,6 @@ local function order()
 			break
 		end
 	end
-	-- And so on for all 6 stats...
 	n = 1
 	for i,v in sort(stats.kills) do
 		if n < 4.5 then
@@ -181,21 +157,16 @@ local function order()
 	end
 end
 
--- 2 seconds after starting, order the stats.
--- (The slight delay is to make sure everything is loaded.)
 minetest.after(2, function()
 	order()
 end)
 
--- Set the timers for the globalstep to 0.
 local timer = 0
 local timer2 = 0
 local oldpos = {}
 minetest.register_globalstep(function(dtime)
-	-- Increase both timers on globalstep.
 	timer = timer + dtime
 	timer2 = timer2 + dtime
-	-- Every 15 seconds check the distance the player has walked.
 	if (timer >= 15) then
 		local players = minetest.get_connected_players()
 		-- Go through all players on the server.
@@ -206,7 +177,6 @@ minetest.register_globalstep(function(dtime)
 				if stats.distance[name] == nil then
 					stats.distance[name] = 0
 				end
-				-- Maths to change three coords into one number!
 				stats.distance[name] = stats.distance[name]
 					+ math.floor(math.sqrt(math.pow(oldpos[name].x - pos.x, 2)
 					+ math.pow(oldpos[name].y - pos.y, 2)
@@ -216,13 +186,10 @@ minetest.register_globalstep(function(dtime)
 			if stats.time_on[name] == nil then
 				stats.time_on[name] = 0
 			end
-			-- Increase the time the player has played for.
 			stats.time_on[name] = stats.time_on[name] + math.floor(timer)
 		end
-		-- Set the timer back to 0, so that the function waits another 15 seconds before running.
 		timer = 0
 	end
-	-- Every minute order the stats and save them to the file.
 	if timer2 >= 60 then
 		order()
 		save_stats()
@@ -230,21 +197,32 @@ minetest.register_globalstep(function(dtime)
 	end
 end)
 
--- Order and save the stats when minetest closes.
 minetest.register_on_shutdown(function()
 	order()
 	save_stats()
 end)
 
--- Register a chat command for viewing stats!
 minetest.register_chatcommand("stats", {
 	params = "<name>",
 	description = "print out privileges of player",
 	func = function(name, param)
-		if minetest.is_singleplayer() then
-			-- If it's singleplayer, update the stats straight away, as it will be v. quick.
-			order()
+		if param ~= "" then
+			local string = "Stats of " .. param .. ": "
+			for i, v in pairs(stats) do
+				if v[param] ~= nil then
+					string = string .. i .. ": " .. v[param] .. "   "
+				end
+			end
+			if string ~= "Stats of " .. param .. ": " then
+				minetest.chat_send_player(name, string)
+			else
+				minetest.chat_send_player(name, "Could not find stats for " .. param .. "!")
+			end
+		else
+			if minetest.is_singleplayer() then
+				order()
+			end
+			minetest.show_formspec(name, "stats:stats", n_formspec)
 		end
-		minetest.show_formspec(name, "stats:stats", n_formspec)
 	end,
 })
