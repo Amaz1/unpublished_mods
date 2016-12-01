@@ -119,8 +119,8 @@ local function build_storage_place(player)
 	else
 		local pos = find_player_place(storage_realm.iteration, storage_realm.last_pos, name)
 		storage_realm.player_old_pos[name] = player:getpos()
-		player:setpos({x = pos.x, y = pos.y + 2, z = pos.z})
-		minetest.after(2, function()
+		tp_player(player, {x = pos.x, y = pos.y + 2, z = pos.z})
+		minetest.after(4, function()
 			for i = -5, 5 do
 			for j = -5, 5 do
 				minetest.set_node({x = pos.x + i, y = pos.y, z = pos.z + j},
@@ -159,6 +159,7 @@ minetest.register_craftitem("storage_solutions:cloud_tp", {
 		itemstack:set_name("storage_solutions:cloud_return_tp")
 		return itemstack
 	end,
+	stack_max = 1,
 })
 
 minetest.register_craftitem("storage_solutions:cloud_return_tp", {
@@ -178,6 +179,17 @@ minetest.register_craftitem("storage_solutions:cloud_return_tp", {
 		return itemstack
 	end,
 	on_drop = function()
-		return false
+		return nil
 	end,
+	stack_max = 1,
+	groups = {not_in_creative_inventory = 1},
+})
+
+minetest.register_craft({
+	output = "storage_solutions:cloud_tp",
+	recipe = {
+		{"default:mese_crystal_fragment", "default:snow", "default:mese_crystal_fragment"},
+		{"default:snow", "default:mese_crystal_fragment", "default:snow"},
+		{"default:mese_crystal_fragment", "default:snow", "default:mese_crystal_fragment"},
+	}
 })
